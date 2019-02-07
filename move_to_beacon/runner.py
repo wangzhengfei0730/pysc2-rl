@@ -21,7 +21,7 @@ class Runner:
             return actions.FUNCTIONS.select_army('select'), False
         else:
             y, x = np.unravel_index(spatial_index, self.model.spatial_res)
-            return actions.FunctionCall(action, [[0], [y, x]]), True
+            return actions.FunctionCall(action.id, [[0], [y, x]]), True
 
     def _compute_advantage(self, t, done, next_value, rewards, values):
         if done:
@@ -38,7 +38,7 @@ class Runner:
 
         for _ in range(self.nsteps):
             action_index, spatial_index, value, prob, spatial_prob = self.model.step(
-                np.asarray([self.observation]),
+                np.asarray([self.observation]).swapaxes(0, 1),
                 [self.action_mask]
             )
             action, spatial_mask = self._generate_action(action_index[0], spatial_index[0])
@@ -53,7 +53,8 @@ class Runner:
             mb_spatial_probs.append(spatial_prob)
             mb_dones.append(self.done)
 
-            self.observation[:], rewards, self.done, self.action_mask = self.env.step(action)
+            self.observation[:], rewards, self.done, infos = self.env.step(action)
+            self.action_mask = infos['action_mask']
             mb_rewards.append(rewards)
 
         mb_advantage = np.zeros_like(mb_rewards)
@@ -65,5 +66,6 @@ class Runner:
             else:
                 self.advantage = self._compute_advantage(t, mb_dones[t + 1], mb_values[t + 1], mb_rewards, mb_values)
             mb_advantage[t] = self.advantage
+        mb_observations = np.asarray(mb_observations).swapaxes(0, 1)
 
         return mb_observations, mb_actions, mb_action_mask, mb_spatial_actions, mb_spatial_mask, mb_advantage, mb_values, mb_probs, mb_spatial_probs

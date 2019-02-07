@@ -5,9 +5,11 @@
       <w>coef</w>
       <w>dones</w>
       <w>logits</w>
+      <w>minimap</w>
       <w>nsteps</w>
       <w>probs</w>
       <w>timestep</w>
+      <w>timesteps</w>
     </words>
   </dictionary>
 </component>

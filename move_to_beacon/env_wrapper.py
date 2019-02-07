@@ -10,9 +10,9 @@ class SC2EnvWrapper:
     def __init__(self, env, res):
         self._env = env
         self._res = res
-        self._actions = [actions.FUNCTIONS.select_army, actions.FUNCTIONS.Move_screen]
+        self.actions = [actions.FUNCTIONS.select_army, actions.FUNCTIONS.Move_screen]
 
-        self.action_space = len(self._actions)
+        self.action_space = len(self.actions)
         self.observation_space = (self._res, self._res)
 
         self._observation = None
@@ -32,7 +32,7 @@ class SC2EnvWrapper:
     def _get_action_mask(self):
         available_actions = self._observation['available_actions']
         action_mask = [0] * self.action_space
-        for index, action in enumerate(self._actions):
+        for index, action in enumerate(self.actions):
             if action.id.value in available_actions:
                 action_mask[index] = 1
         return action_mask
