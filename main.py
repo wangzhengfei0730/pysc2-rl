@@ -4,8 +4,6 @@ import argparse
 from functools import partial
 import tensorflow as tf
 from pysc2.env import sc2_env
-from a2c_agent import A2CAgent
-from a2c_runner import A2CRunner
 
 
 
@@ -29,9 +27,6 @@ def main():
     )
 
     env_fns = [partial(make_sc2env, **env_args)] * args.num_envs
-
-    agent = A2CAgent(sess, args)
-    runner = A2CRunner()
 
     
 
