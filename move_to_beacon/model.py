@@ -26,7 +26,7 @@ class Model(object):
 
         self.advantage = tf.placeholder(tf.float32, [None])
         self.old_probs = tf.placeholder(tf.float32, [None, self.action_space])
-        self.old_probs_spatial = tf.placeholder(tf.float32, [None, self.spatial_res[0] * self.spatial_res[1]])
+        self.old_spatial_probs = tf.placeholder(tf.float32, [None, self.spatial_res[0] * self.spatial_res[1]])
         self.old_value = tf.placeholder(tf.float32, [None])
 
         action_probs = self.compute_action_probs(self.model.probs)
@@ -35,7 +35,7 @@ class Model(object):
         old_action_log_probs = self.compute_action_log_probs(old_action_probs)
 
         spatial_action_log_probs = self.compute_spatial_action_log_probs(self.model.probs_spatial)
-        old_spatial_action_log_probs = self.compute_spatial_action_log_probs(self.old_probs_spatial)
+        old_spatial_action_log_probs = self.compute_spatial_action_log_probs(self.old_spatial_probs)
 
         self.sampled_actions = sample(action_probs)
         self.sampled_spatial_actions = sample(self.model.probs_spatial)
@@ -101,5 +101,20 @@ class Model(object):
             self.model.screen_selected: np.asarray([obs[2]])
         })
 
-    def train(self):
-        pass
+    def train(self, observations, actions, action_mask, spatial_actions, spatial_mask, advantages, values, probs, spatial_probs):
+        feed_dict = {
+            self.returns: advantages + values,
+            self.spatial_mask: spatial_mask,
+            self.action_mask: action_mask,
+            self.spatial_action: spatial_actions,
+            self.action: actions,
+            self.model.screen_self: np.asarray(observations[0]),
+            self.model.screen_neutral: np.asarray(observations[1]),
+            self.model.screen_selected: np.asarray(observations[2]),
+            self.advantage: advantages,
+            self.old_probs: probs,
+            self.old_spatial_probs: spatial_probs,
+            self.old_value: values
+        }
+        loss, _ = self.sess.run([self.loss, self.optimizer], feed_dict=feed_dict)
+        return loss

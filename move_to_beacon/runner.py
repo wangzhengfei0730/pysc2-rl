@@ -36,7 +36,7 @@ class Runner:
         mb_spatial_actions, mb_spatial_mask = [], []
         mb_values, mb_probs, mb_spatial_probs = [], [], []
 
-        for _ in range(self.nsteps):
+        for i in range(self.nsteps):
             action_index, spatial_index, value, prob, spatial_prob = self.model.step(
                 np.asarray([self.observation]).swapaxes(0, 1),
                 [self.action_mask]
@@ -68,4 +68,13 @@ class Runner:
             mb_advantage[t] = self.advantage
         mb_observations = np.asarray(mb_observations).swapaxes(0, 1)
 
-        return mb_observations, mb_actions, mb_action_mask, mb_spatial_actions, mb_spatial_mask, mb_advantage, mb_values, mb_probs, mb_spatial_probs
+        return \
+            np.asarray(mb_observations), \
+            np.asarray(mb_actions), \
+            np.asarray(mb_action_mask), \
+            np.asarray(mb_spatial_actions), \
+            np.asarray(mb_spatial_mask), \
+            np.asarray(mb_advantage), \
+            np.asarray(mb_values), \
+            np.asarray(mb_probs), \
+            np.asarray(mb_spatial_probs)

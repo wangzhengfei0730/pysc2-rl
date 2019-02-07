@@ -1,5 +1,6 @@
 import sys
 import argparse
+import numpy as np
 from pysc2.env.sc2_env import SC2Env
 from pysc2.lib.features import Dimensions, AgentInterfaceFormat
 from move_to_beacon.env_wrapper import SC2EnvWrapper
@@ -45,7 +46,30 @@ def main():
     )
 
     for _ in range((int(args.num_timesteps) // args.num_steps) + 1):
-        runner.run()
+        observations, actions, action_mask, spatial_actions, spatial_mask, advantage, values, probs, spatial_probs = runner.run()
+        indexes = np.arange(args.num_steps)
+
+        for _ in range(args.num_epochs):
+            np.random.shuffle(indexes)
+
+            for i in range(0, args.num_steps, args.batch_size):
+                shuffled_indexes = indexes[i:i + args.batch_size]
+                loss = model.train(
+                    observations=[
+                        observations[0][shuffled_indexes],
+                        observations[1][shuffled_indexes],
+                        observations[2][shuffled_indexes]
+                    ],
+                    actions=actions[shuffled_indexes],
+                    action_mask=action_mask[shuffled_indexes],
+                    spatial_actions=spatial_actions[shuffled_indexes],
+                    spatial_mask=spatial_mask[shuffled_indexes],
+                    advantages=advantage[shuffled_indexes],
+                    values=values[shuffled_indexes],
+                    probs=probs[shuffled_indexes],
+                    spatial_probs=spatial_probs[shuffled_indexes]
+                )
+                print(i, 'loss function:', loss)
 
 
 if __name__ == '__main__':
@@ -53,11 +77,12 @@ if __name__ == '__main__':
     parser.add_argument('--map', type=str, default='MoveToBeacon', help='StarCraft II mini-games map')
     parser.add_argument('--res', type=int, default=32, help='resolution of screen and minimap')
     parser.add_argument('--num-envs', type=int, default=2, help='number of environments')
-    # batch_size = num_steps * num_envs
-    parser.add_argument('--num-steps', type=int, default=128, help='number of steps per update')
+    parser.add_argument('--num-steps', type=int, default=64, help='number of steps per update')
     parser.add_argument('--num-cpus', type=int, default=1, help='number of cpus')
     parser.add_argument('--seed', type=int, default=1, help='random seed')
     parser.add_argument('--num-timesteps', type=int, default=1e6, help='number of timesteps')
+    parser.add_argument('--num-epochs', default=4, type=int, help='number of training epochs per update')
+    parser.add_argument('--batch-size', default=16, type=int, help='batch size')
     parser.add_argument('--learning-rate', type=float, default=3e-4, help='learning rate')
     parser.add_argument('--gamma', default=0.99, type=float, help='discounting factor')
     parser.add_argument('--lam', default=0.95, type=float, help='advantage estimation discounting factor')
