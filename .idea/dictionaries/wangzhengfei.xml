@@ -3,6 +3,7 @@
     <words>
       <w>cliprange</w>
       <w>coef</w>
+      <w>conv</w>
       <w>dones</w>
       <w>logits</w>
       <w>minimap</w>
