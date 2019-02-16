@@ -9,6 +9,7 @@
       <w>minimap</w>
       <w>nsteps</w>
       <w>probs</w>
+      <w>pygame</w>
       <w>timestep</w>
       <w>timesteps</w>
     </words>

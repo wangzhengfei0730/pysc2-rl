@@ -7,6 +7,7 @@ import utils as U
 
 
 class A3CAgent(object):
+    """Asynchronous Advantage Actor-Critic agents for mini-games"""
 
     def __init__(self, screen_dimensions, minimap_dimensions, training, name='A3CAgent'):
         self.name = name
@@ -86,6 +87,8 @@ class A3CAgent(object):
                 clipped_grads.append([grad, var])
             self.train_op = optimizer.minimize(clipped_grads)
 
+            self.saver = tf.train.Saver(max_to_keep=None)
+
     def setup(self, sess, summary_writer):
         self.sess = sess
         self.summary_writer = summary_writer
@@ -133,4 +136,10 @@ class A3CAgent(object):
         return actions.FunctionCall(action_id, action_args)
 
     def update(self):
+        pass
+
+    def save_model(self):
+        self.saver.save(self.sess, None, None)
+
+    def load_model(self):
         pass
