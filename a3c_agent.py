@@ -8,18 +8,23 @@ import utils as U
 
 class A3CAgent(object):
 
-    def __init__(self, non_spatial_dimensions, screen_dimensions, minimap_dimensions):
-        self.non_spatial_dimensions = non_spatial_dimensions
+    def __init__(self, screen_dimensions, minimap_dimensions, training, name='A3CAgent'):
+        self.name = name
+        self.training = training
+        self.summary = []
         self.screen_dimensions = screen_dimensions
         self.minimap_dimensions = minimap_dimensions
+        self.structured_dimensions = len(actions.FUNCTIONS)
+
+    def reset(self):
+        self.epsilon = [0.05, 0.2]
 
     def build_model(self, reuse, device):
-        with tf.variable_scope() and tf.device(device):
+        with tf.variable_scope(self.name) and tf.device(device):
             if reuse:
                 tf.get_variable_scope().reuse_variables()
 
             # placeholder for inputs of network
-            self.non_spatial_ph = tf.placeholder(tf.float32, [None, self.non_spatial_dimensions], name='non_spatial')
             self.screen_ph = tf.placeholder(
                 tf.float32,
                 [None, U.screen_channel(), self.screen_dimensions, self.screen_dimensions],
@@ -30,9 +35,10 @@ class A3CAgent(object):
                 [None, U.minimap_channel(), self.minimap_dimensions, self.minimap_dimensions],
                 name='minimap'
             )
+            self.structured_ph = tf.placeholder(tf.float32, [None, self.structured_dimensions], name='structured')
 
             # build network
-            network = build_network(self.non_spatial_ph, self.screen_ph, self.minimap_ph, len(actions.FUNCTIONS))
+            network = build_network(self.structured_ph, self.screen_ph, self.minimap_ph, len(actions.FUNCTIONS))
             self.non_spatial_action, self.spatial_action, self.value = network
 
             # placeholder for targets and masks
@@ -80,7 +86,51 @@ class A3CAgent(object):
                 clipped_grads.append([grad, var])
             self.train_op = optimizer.minimize(clipped_grads)
 
+    def setup(self, sess, summary_writer):
+        self.sess = sess
+        self.summary_writer = summary_writer
+
+    def initialize(self):
+        init_op = tf.global_variables_initializer()
+        self.sess.run(init_op)
+
     def step(self, obs):
         screen = np.array(obs.observation.screen, dtype=np.float32)
+        screen = np.expand_dims(U.preprocess_screen(screen), axis=0)
         minimap = np.array(obs.observation.minimap, dtype=np.float32)
+        minimap = np.expand_dims(U.preprocess_minimap(minimap), axis=0)
+        structured = np.zeros([1, self.structured_dimensions], dtype=np.float32)
+        structured[0, obs.observation.available_actions] = 1
 
+        feed_dict = {
+            self.screen_ph: screen,
+            self.minimap_ph: minimap,
+            self.structured_ph: structured
+        }
+        non_spatial_action, spatial_action, value = self.sess.run(
+            [self.non_spatial_action, self.spatial_action, self.value],
+            feed_dict=feed_dict
+        )
+
+        non_spatial_action, spatial_action = non_spatial_action.ravel(), spatial_action.ravel()
+        available_actions = obs.observation.available_actions
+        action_id = available_actions[np.argmax(non_spatial_action[available_actions])]
+        spatial_target = np.argmax(spatial_action)
+        spatial_target = [int(spatial_target // self.screen_dimensions), int(spatial_target % self.screen_dimensions)]
+
+        # epsilon-greedy exploration
+        if self.training and np.random.rand() < self.epsilon[0]:
+            action_id = np.random.choice(available_actions)
+        if self.training and np.random.rand() < self.epsilon[1]:
+            delta_y, delta_x = np.random.randint(-4, 5), np.random.randint(-4, 5)
+            spatial_target[0] = int(max(0, min(self.screen_dimensions - 1, spatial_target[0] + delta_y)))
+            spatial_target[1] = int(max(0, min(self.screen_dimensions - 1, spatial_target[1] + delta_x)))
+
+        action_args = []
+        for arg in actions.FUNCTIONS[action_id].args:
+            if arg.name in ('screen', 'minimap', 'screen2'):
+                action_args.append([spatial_target[1], spatial_target[0]])
+        return actions.FunctionCall(action_id, action_args)
+
+    def update(self):
+        pass

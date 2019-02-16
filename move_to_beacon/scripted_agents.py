@@ -22,6 +22,6 @@ class MoveToBeacon(base_agent.BaseAgent):
             if not beacon:
                 return FUNCTIONS.no_op()
             beacon_center = numpy.mean(beacon, axis=0).round()
-            return FUNCTIONS.Move_screen("now", beacon_center)
+            return FUNCTIONS[331]("now", beacon_center)
         else:
-            return FUNCTIONS.select_army("select")
+            return FUNCTIONS[7]("select")

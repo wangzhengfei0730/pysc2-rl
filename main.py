@@ -1,11 +1,23 @@
+import os
 import sys
+import importlib
+import threading
 from absl import flags
 import argparse
 from functools import partial
 import tensorflow as tf
-from pysc2.env import sc2_env
+from pysc2.env import sc2_env, available_actions_printer
+from pysc2.lib import stopwatch
+
+LOCK = threading.Lock()
+FLAGS = flags.FLAGS
 
 
+def run_thread():
+    with sc2_env.SC2Env(
+        map_name=args.map_name
+    ) as env:
+        env = available_actions_printer.AvailableActionsPrinter(env)
 
 
 
@@ -32,7 +44,7 @@ def main():
 
 
 if __name__ == '__main__':
-    FLAGS = flags.FLAGS
+
     FLAGS(sys.argv)
 
     parser = argparse.ArgumentParser(description='StarCraft II mini-games reinforcement learning agents.')
