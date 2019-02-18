@@ -10,6 +10,7 @@
       <w>nsteps</w>
       <w>probs</w>
       <w>pygame</w>
+      <w>rollout</w>
       <w>timestep</w>
       <w>timesteps</w>
     </words>

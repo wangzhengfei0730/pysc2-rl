@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from pysc2.lib import actions
+from pysc2.lib import actions, features
 
 from network import build_network
 import utils as U
@@ -83,9 +83,9 @@ class A3CAgent(object):
             grads = optimizer.compute_gradients(loss)
             clipped_grads = []
             for grad, var in grads:
-                grad = tf.clip_by_value(grad, 10.0)
+                grad = tf.clip_by_norm(grad, 10.0)
                 clipped_grads.append([grad, var])
-            self.train_op = optimizer.minimize(clipped_grads)
+            self.train_op = optimizer.apply_gradients(clipped_grads)
 
             self.saver = tf.train.Saver(max_to_keep=None)
 
@@ -98,10 +98,14 @@ class A3CAgent(object):
         self.sess.run(init_op)
 
     def step(self, obs):
-        screen = np.array(obs.observation.screen, dtype=np.float32)
+        screen = np.array(obs.observation.rgb_screen, dtype=np.float32)
+        print('screen shape:', screen.shape)
         screen = np.expand_dims(U.preprocess_screen(screen), axis=0)
-        minimap = np.array(obs.observation.minimap, dtype=np.float32)
+        print('screen shape:', screen.shape)
+        minimap = np.array(obs.observation.rgb_minimap, dtype=np.float32)
+        print('minimap shape:', minimap.shape)
         minimap = np.expand_dims(U.preprocess_minimap(minimap), axis=0)
+        print('minimap shape:', minimap.shape)
         structured = np.zeros([1, self.structured_dimensions], dtype=np.float32)
         structured[0, obs.observation.available_actions] = 1
 

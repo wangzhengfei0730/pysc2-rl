@@ -50,7 +50,7 @@ def preprocess_minimap(minimap):
         if i == _MINIMAP_PLAYER_ID or features.MINIMAP_FEATURES[i].type == features.FeatureType.SCALAR:
             layers.append(minimap[i:i+1] / features.MINIMAP_FEATURES[i].scale)
         else:
-            layer = np.zeros([features.MINIMAP_FEATURES[i].scale, minimap.shape[1], minimap[2]], dtype=np.float32)
+            layer = np.zeros([features.MINIMAP_FEATURES[i].scale, minimap.shape[1], minimap.shape[2]], dtype=np.float32)
             for j in range(features.MINIMAP_FEATURES[i].scale):
                 y, x = (minimap[i] == j).nonzero()
                 layer[j, y, x] = 1

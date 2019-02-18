@@ -10,32 +10,32 @@ def build_network(non_spatial, screen, minimap, action_dimensions):
     )
 
     screen_conv1 = tf.contrib.layers.conv2d(
-        inputs=tf.transpose(screen, []),
+        inputs=tf.transpose(screen, [0, 2, 3, 1]),
         num_outputs=16,
         kernel_size=5,
-        strides=1,
+        stride=1,
         scope='screen_conv1'
     )
     screen_conv2 = tf.contrib.layers.conv2d(
         inputs=screen_conv1,
         num_outputs=32,
         kernel_size=3,
-        strides=1,
+        stride=1,
         scope='screen_conv2'
     )
 
     minimap_conv1 = tf.contrib.layers.conv2d(
-        inputs=tf.transpose(minimap, []),
+        inputs=tf.transpose(minimap, [0, 2, 3, 1]),
         num_outputs=16,
         kernel_size=5,
-        strides=1,
+        stride=1,
         scope='minimap_conv1'
     )
     minimap_conv2 = tf.contrib.layers.conv2d(
         inputs=minimap_conv1,
         num_outputs=32,
         kernel_size=3,
-        strides=1,
+        stride=1,
         scope='minimap_conv2'
     )
 
@@ -43,7 +43,7 @@ def build_network(non_spatial, screen, minimap, action_dimensions):
         inputs=tf.concat([screen_conv2, minimap_conv2], axis=3),
         num_outputs=1,
         kernel_size=1,
-        strides=1,
+        stride=1,
         activation_fn=None,
         scope='spatial_action'
     )
@@ -72,6 +72,6 @@ def build_network(non_spatial, screen, minimap, action_dimensions):
         num_outputs=1,
         activation_fn=None,
         scope='value'
-    ), -1)
+    ), [-1])
 
     return non_spatial_action, spatial_action, value
