@@ -33,7 +33,7 @@ def minimap_channel():
 def preprocess_screen(screen):
     layers = []
     for i in range(len(features.SCREEN_FEATURES)):
-        if i == _SCREEN_PLAYER_ID or i == _SCREEN_UNIT_TYPE or features.SCREEN_FEATURES[i].scale == features.FeatureType.SCALAR:
+        if i == _SCREEN_PLAYER_ID or i == _SCREEN_UNIT_TYPE or features.SCREEN_FEATURES[i].type == features.FeatureType.SCALAR:
             layers.append(screen[i:i+1] / features.SCREEN_FEATURES[i].scale)
         else:
             layer = np.zeros([features.SCREEN_FEATURES[i].scale, screen.shape[1], screen.shape[2]], dtype=np.float32)

@@ -17,12 +17,12 @@ FLAGS = flags.FLAGS
 def run_thread(agent, visualize):
     with sc2_env.SC2Env(
         map_name=args.map_name,
-        agent_interface_format=sc2_env.AgentInterfaceFormat(
-            rgb_dimensions=sc2_env.Dimensions(
-                screen=args.screen_resolution,
-                minimap=args.minimap_resolution
+        agent_interface_format=[sc2_env.AgentInterfaceFormat(
+            feature_dimensions=sc2_env.Dimensions(
+                screen=(args.screen_resolution, args.screen_resolution),
+                minimap=(args.minimap_resolution, args.minimap_resolution)
             )
-        ),
+        )],
         step_mul=args.step_mul,
         visualize=visualize
     ) as env:
@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='StarCraft II mini-games reinforcement learning a3c agents.')
     parser.add_argument('--map-name', type=str, default='MoveToBeacon', help='SC2LE mini-games map name')
-    parser.add_argument('--num-envs', type=int, default=2, help='Number of environments')
+    parser.add_argument('--num-envs', type=int, default=1, help='Number of environments')
     parser.add_argument('--screen-resolution', type=int, default=64, help='Resolution of the screen')
     parser.add_argument('--minimap-resolution', type=int, default=64, help='Resolution of the minimap')
     parser.add_argument('--step-mul', type=int, default=8, help='Number of game steps per agent step')

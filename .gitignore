@@ -1,5 +1,5 @@
+logs/
 .vscode/
+.idea/
 __pycache__/
 *.pyc
-.idea/dictionaries/wangzhengfei.xml
-.idea/workspace.xml

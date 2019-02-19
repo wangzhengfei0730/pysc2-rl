@@ -98,14 +98,10 @@ class A3CAgent(object):
         self.sess.run(init_op)
 
     def step(self, obs):
-        screen = np.array(obs.observation.rgb_screen, dtype=np.float32)
-        print('screen shape:', screen.shape)
+        screen = np.array(obs.observation.feature_screen, dtype=np.float32)
         screen = np.expand_dims(U.preprocess_screen(screen), axis=0)
-        print('screen shape:', screen.shape)
-        minimap = np.array(obs.observation.rgb_minimap, dtype=np.float32)
-        print('minimap shape:', minimap.shape)
+        minimap = np.array(obs.observation.feature_minimap, dtype=np.float32)
         minimap = np.expand_dims(U.preprocess_minimap(minimap), axis=0)
-        print('minimap shape:', minimap.shape)
         structured = np.zeros([1, self.structured_dimensions], dtype=np.float32)
         structured[0, obs.observation.available_actions] = 1
 
@@ -114,8 +110,8 @@ class A3CAgent(object):
             self.minimap_ph: minimap,
             self.structured_ph: structured
         }
-        non_spatial_action, spatial_action, value = self.sess.run(
-            [self.non_spatial_action, self.spatial_action, self.value],
+        non_spatial_action, spatial_action = self.sess.run(
+            [self.non_spatial_action, self.spatial_action],
             feed_dict=feed_dict
         )
 
@@ -137,6 +133,8 @@ class A3CAgent(object):
         for arg in actions.FUNCTIONS[action_id].args:
             if arg.name in ('screen', 'minimap', 'screen2'):
                 action_args.append([spatial_target[1], spatial_target[0]])
+            else:
+                action_args.append([0])
         return actions.FunctionCall(action_id, action_args)
 
     def update(self):
