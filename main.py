@@ -39,7 +39,7 @@ def run_thread(agent, visualize):
                         STEP += 1
                         step = STEP
                     learning_rate = args.learning_rate * (1 - 0.9 * step / args.max_steps)
-                    # update agent's policy
+                    agent.update(replay_buffer, args.gamma, learning_rate, step)
                     replay_buffer = []
 
                     if step >= args.max_steps:
@@ -90,6 +90,7 @@ if __name__ == '__main__':
     parser.add_argument('--episode-horizon', type=int, default=60, help='Total steps for every agents')
     parser.add_argument('--save-interval', type=int, default=1, help='Number of steps between saving events')
     parser.add_argument('--learning-rate', type=float, default=5e-4, help='Learning rate')
+    parser.add_argument('--gamma', type=float, default=0.99, help='discounting factor')
     parser.add_argument('--log-dir', type=str, default='./logs', help='Logs output directory')
     args = parser.parse_args()
     

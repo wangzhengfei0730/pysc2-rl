@@ -7,10 +7,12 @@
       <w>dones</w>
       <w>logits</w>
       <w>minimap</w>
+      <w>minimaps</w>
       <w>nsteps</w>
       <w>probs</w>
       <w>pygame</w>
       <w>rollout</w>
+      <w>structureds</w>
       <w>timestep</w>
       <w>timesteps</w>
     </words>

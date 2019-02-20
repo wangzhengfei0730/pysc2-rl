@@ -69,6 +69,8 @@ class A3CAgent(object):
             non_spatial_action_log_prob = tf.log(tf.clip_by_value(non_spatial_action_prob, 1e-10, 1.))
             spatial_action_prob = tf.reduce_sum(self.spatial_action * self.sample_spatial_action_ph, axis=1)
             spatial_action_log_prob = tf.log(tf.clip_by_value(spatial_action_prob, 1e-10, 1.))
+            self.summary.append(tf.summary.histogram('non_spatial_action_prob', non_spatial_action_prob))
+            self.summary.append(tf.summary.histogram('spatial_action_prob', spatial_action_prob))
 
             # compute loss
             action_log_prob = self.valid_spatial_action_ph * spatial_action_log_prob + non_spatial_action_log_prob
@@ -76,6 +78,8 @@ class A3CAgent(object):
             policy_loss = -tf.reduce_mean(action_log_prob * advantage)
             value_loss = -tf.reduce_mean(self.value * advantage)
             loss = policy_loss + value_loss
+            self.summary.append(tf.summary.scalar('policy_loss', policy_loss))
+            self.summary.append(tf.summary.scalar('value_loss', value_loss))
 
             # optimizer
             self.learning_rate_ph = tf.placeholder(tf.float32, None, name='learning_rate')
@@ -83,9 +87,12 @@ class A3CAgent(object):
             grads = optimizer.compute_gradients(loss)
             clipped_grads = []
             for grad, var in grads:
+                self.summary.append(tf.summary.histogram(var.op.name, var))
+                self.summary.append(tf.summary.histogram(var.op.name + '/grad', grad))
                 grad = tf.clip_by_norm(grad, 10.0)
                 clipped_grads.append([grad, var])
             self.train_op = optimizer.apply_gradients(clipped_grads)
+            self.summary_op = tf.summary.merge(self.summary)
 
             self.saver = tf.train.Saver(max_to_keep=None)
 
@@ -137,8 +144,82 @@ class A3CAgent(object):
                 action_args.append([0])
         return actions.FunctionCall(action_id, action_args)
 
-    def update(self):
-        pass
+    def update(self, replay_buffer, gamma, learning_rate, step):
+        obs = replay_buffer[-1][-1]
+        if obs.last():
+            reward = 0
+        else:
+            screen = np.array(obs.observation.feature_screen, dtype=np.float32)
+            screen = np.expand_dims(U.preprocess_screen(screen), axis=0)
+            minimap = np.array(obs.observation.feature_minimap, dtype=np.float32)
+            minimap = np.expand_dims(U.preprocess_minimap(minimap), axis=0)
+            structured = np.zeros([1, self.structured_dimensions], dtype=np.float32)
+            structured[0, obs.observation.available_actions] = 1
+
+            feed_dict = {
+                self.screen_ph: screen,
+                self.minimap_ph: minimap,
+                self.structured_ph: structured
+            }
+            reward = self.sess.run(self.value, feed_dict=feed_dict)
+
+        # compute targets and masks
+        screens, minimaps, structureds = [], [], []
+        target_value = np.zeros([len(replay_buffer)], dtype=np.float32)
+        target_value[-1] = reward
+
+        valid_non_spatial_action = np.zeros([len(replay_buffer), len(actions.FUNCTIONS)], dtype=np.float32)
+        sample_non_spatial_action = np.zeros([len(replay_buffer), len(actions.FUNCTIONS)], dtype=np.float32)
+        valid_spatial_action = np.zeros([len(replay_buffer)], dtype=np.float32)
+        sample_spatial_action = np.zeros([len(replay_buffer), self.screen_dimensions ** 2], dtype=np.float32)
+
+        replay_buffer.reverse()
+        for i, [obs, action, next_obs] in enumerate(replay_buffer):
+            screen = np.array(obs.observation.feature_screen, dtype=np.float32)
+            screen = np.expand_dims(U.preprocess_screen(screen), axis=0)
+            minimap = np.array(obs.observation.feature_minimap, dtype=np.float32)
+            minimap = np.expand_dims(U.preprocess_minimap(minimap), axis=0)
+            structured = np.zeros([1, self.structured_dimensions], dtype=np.float32)
+            structured[0, obs.observation.available_actions] = 1
+
+            screens.append(screen)
+            minimaps.append(minimap)
+            structureds.append(structured)
+
+            reward = obs.reward
+            action_id = action.function
+            action_args = action.arguments
+
+            target_value[i] = reward + gamma * target_value[i - 1]
+
+            available_actions = obs.observation.available_actions
+            valid_non_spatial_action[i, available_actions] = 1
+            sample_non_spatial_action[i, action_id] = 1
+
+            args = actions.FUNCTIONS[action_id].args
+            for arg, action_arg in zip(args, action_args):
+                if arg.name in ('screen', 'minimap', 'screen2'):
+                    spatial_action = action_arg[1] * self.screen_dimensions + action_arg[0]
+                    valid_spatial_action[i] = 1
+                    sample_spatial_action[i, spatial_action] = 1
+
+        screens = np.concatenate(screens, axis=0)
+        minimaps = np.concatenate(minimaps, axis=0)
+        structureds = np.concatenate(structureds, axis=0)
+
+        feed_dict = {
+            self.screen_ph: screens,
+            self.minimap_ph: minimaps,
+            self.structured_ph: structureds,
+            self.target_value_ph: target_value,
+            self.valid_non_spatial_action_ph: valid_non_spatial_action,
+            self.sample_non_spatial_action_ph: sample_non_spatial_action,
+            self.valid_spatial_action_ph: valid_spatial_action,
+            self.sample_spatial_action_ph: sample_spatial_action,
+            self.learning_rate_ph: learning_rate
+        }
+        _, summary = self.sess.run([self.train_op, self.summary_op], feed_dict=feed_dict)
+        self.summary_writer.add_summary(summary, step)
 
     def save_model(self):
         self.saver.save(self.sess, None, None)
