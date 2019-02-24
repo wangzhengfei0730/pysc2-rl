@@ -8,7 +8,6 @@ from a3c_agent import A3CAgent
 from rollout import rollout
 
 
-DEVICE = ['/cpu:0']
 LOCK = threading.Lock()
 STEP = 0
 FLAGS = flags.FLAGS
@@ -24,8 +23,15 @@ flags.DEFINE_integer('episode_horizon', 60, 'Total steps for every agents')
 flags.DEFINE_integer('save_interval', 10, 'Number of steps between saving events')
 flags.DEFINE_float('learning_rate', 5e-4, 'Learning rate')
 flags.DEFINE_float('gamma', 0.99, 'Discounting factor')
+flags.DEFINE_integer('num_cpus', 1, 'Number of cpus used for training')
+flags.DEFINE_integer('num_gpus', 0, 'Number of gpus used for training')
 flags.DEFINE_string('logdir', './logs', 'Logs output directory')
 FLAGS(sys.argv)
+
+if FLAGS.num_gpus > 0:
+    DEVICE = ['/gpu:{}'.format(i) for i in range(FLAGS.num_gpus)]
+else:
+    DEVICE = ['/cpu:{}'.format(i) for i in range(FLAGS.num_cpus)]
 
 
 def run_thread(agent, visualize):
@@ -54,7 +60,8 @@ def run_thread(agent, visualize):
                     learning_rate = FLAGS.learning_rate * (1 - 0.9 * step / FLAGS.max_steps)
                     agent.update(replay_buffer, FLAGS.gamma, learning_rate, step)
                     replay_buffer = []
-
+                    if (step + 1) % FLAGS.save_interval == 0:
+                        agent.save_model(FLAGS.logdir, step)
                     if step >= FLAGS.max_steps:
                         break
 
@@ -63,7 +70,7 @@ def main(argv):
     agents = []
     for i in range(FLAGS.num_envs):
         agent = A3CAgent(FLAGS.screen_resolution, FLAGS.minimap_resolution, FLAGS.train)
-        agent.build_model(i > 0, DEVICE[0])
+        agent.build_model(i > 0, DEVICE[i % len(DEVICE)])
         agents.append(agent)
 
     config = tf.ConfigProto(allow_soft_placement=True)

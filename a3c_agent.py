@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import tensorflow as tf
 from pysc2.lib import actions, features
@@ -221,8 +222,8 @@ class A3CAgent(object):
         _, summary = self.sess.run([self.train_op, self.summary_op], feed_dict=feed_dict)
         self.summary_writer.add_summary(summary, step)
 
-    def save_model(self):
-        self.saver.save(self.sess, None, None)
+    def save_model(self, logdir, step):
+        self.saver.save(self.sess, os.path.join(logdir, 'model'), global_step=step)
 
-    def load_model(self):
+    def load_model(self, step):
         pass
